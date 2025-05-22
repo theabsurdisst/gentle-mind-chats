@@ -26,17 +26,17 @@ const Index = () => {
             {/* Main Content */}
             <div className="flex-1 p-4 md:p-6 overflow-y-auto">
               <div className="max-w-4xl mx-auto">
-                <h1 className="text-2xl font-bold mb-6 animate-fade-in">Welcome to Mindful AI</h1>
+                <h1 className="text-2xl font-bold mb-6 animate-fade-in text-gray-800">Welcome to Mindful AI</h1>
                 
                 <MoodPicker />
                 
                 <Tabs defaultValue="chat" className="animate-fade-in">
-                  <TabsList className="mb-6">
-                    <TabsTrigger value="chat" className="flex items-center gap-1">
+                  <TabsList className="mb-6 bg-white">
+                    <TabsTrigger value="chat" className="flex items-center gap-2 data-[state=active]:bg-therapy-lavender/50">
                       <MessageCircle className="h-4 w-4" />
                       <span>Chat</span>
                     </TabsTrigger>
-                    <TabsTrigger value="mood" className="flex items-center gap-1">
+                    <TabsTrigger value="mood" className="flex items-center gap-2 data-[state=active]:bg-therapy-mint/50">
                       <HeartHandshake className="h-4 w-4" />
                       <span>Mood Tracker</span>
                     </TabsTrigger>

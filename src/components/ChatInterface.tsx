@@ -27,7 +27,7 @@ const ChatInterface: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full">
-      <Card className="flex-1 overflow-hidden flex flex-col bg-therapy-gray/30">
+      <Card className="flex-1 overflow-hidden flex flex-col bg-white shadow-sm border-therapy-lavender">
         <div className="overflow-y-auto p-4 flex-1 chat-scrollbar">
           <div className="space-y-4">
             {messages.map((message) => (
@@ -38,8 +38,10 @@ const ChatInterface: React.FC = () => {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] animate-fade-in ${
-                    message.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"
+                  className={`max-w-[80%] rounded-2xl p-4 animate-fade-in ${
+                    message.role === "user" 
+                      ? "bg-therapy-lavender text-gray-800 rounded-tr-sm" 
+                      : "bg-therapy-blue text-gray-800 rounded-tl-sm"
                   }`}
                 >
                   {message.content}
@@ -48,7 +50,7 @@ const ChatInterface: React.FC = () => {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="chat-bubble-ai flex items-center">
+                <div className="bg-therapy-blue text-gray-800 p-4 rounded-2xl rounded-tl-sm flex items-center">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   <span>Thinking...</span>
                 </div>
