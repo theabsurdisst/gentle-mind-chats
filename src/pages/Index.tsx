@@ -8,7 +8,7 @@ import ChatInterface from "@/components/ChatInterface";
 import MoodPicker from "@/components/MoodPicker";
 import MoodAnalytics from "@/components/MoodAnalytics";
 import ConversationHistory from "@/components/ConversationHistory";
-import { HeartHandshake } from "lucide-react";
+import { MessageCircle, HeartHandshake } from "lucide-react";
 
 const Index = () => {
   return (
@@ -28,35 +28,30 @@ const Index = () => {
               <div className="max-w-5xl mx-auto">
                 <h1 className="text-2xl font-bold mb-6 animate-fade-in text-gray-800">Welcome to Mindful AI</h1>
                 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                  {/* Chat Section - Takes up more space */}
-                  <div className="md:col-span-8 animate-fade-in">
-                    <h2 className="text-xl font-medium mb-4">Chat with Mindful AI</h2>
+                <MoodPicker />
+                
+                <Tabs defaultValue="chat" className="animate-fade-in">
+                  <TabsList className="mb-6 bg-white">
+                    <TabsTrigger value="chat" className="flex items-center gap-2 data-[state=active]:bg-therapy-lavender/50">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Chat</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="mood" className="flex items-center gap-2 data-[state=active]:bg-therapy-mint/50">
+                      <HeartHandshake className="h-4 w-4" />
+                      <span>Mood Tracker</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="chat" className="space-y-6">
                     <div className="h-[70vh]">
                       <ChatInterface />
                     </div>
-                  </div>
+                  </TabsContent>
                   
-                  {/* Mood Section - Takes up less space */}
-                  <div className="md:col-span-4 animate-fade-in">
-                    <MoodPicker />
-                    
-                    <div className="mt-6">
-                      <Tabs defaultValue="mood">
-                        <TabsList className="mb-4 bg-white">
-                          <TabsTrigger value="mood" className="flex items-center gap-2 data-[state=active]:bg-therapy-mint/50">
-                            <HeartHandshake className="h-4 w-4" />
-                            <span>Mood Tracker</span>
-                          </TabsTrigger>
-                        </TabsList>
-                        
-                        <TabsContent value="mood">
-                          <MoodAnalytics />
-                        </TabsContent>
-                      </Tabs>
-                    </div>
-                  </div>
-                </div>
+                  <TabsContent value="mood">
+                    <MoodAnalytics />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>
