@@ -25,7 +25,7 @@ const Index = () => {
             
             {/* Main Content */}
             <div className="flex-1 p-4 md:p-6 overflow-y-auto">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-5xl mx-auto">
                 <h1 className="text-2xl font-bold mb-6 animate-fade-in text-gray-800">Welcome to Mindful AI</h1>
                 
                 <MoodPicker />
@@ -43,7 +43,7 @@ const Index = () => {
                   </TabsList>
                   
                   <TabsContent value="chat" className="space-y-6">
-                    <div className="h-[60vh]">
+                    <div className="h-[70vh]">
                       <ChatInterface />
                     </div>
                   </TabsContent>
