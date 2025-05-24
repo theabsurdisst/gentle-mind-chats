@@ -12,11 +12,12 @@ const ChatInterface: React.FC = () => {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !isLoading) {
-      sendMessage(input.trim());
-      setInput("");
+      const messageToSend = input.trim();
+      setInput(""); // Clear input immediately
+      await sendMessage(messageToSend);
     }
   };
 
@@ -33,10 +34,10 @@ const ChatInterface: React.FC = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-full">
-      <Card className="flex-1 overflow-hidden flex flex-col bg-white shadow-md border-therapy-lavender">
-        <div className="overflow-y-auto p-4 flex-1 chat-scrollbar" style={{ minHeight: "400px" }}>
-          <div className="space-y-4">
+    <div className="flex flex-col h-full max-w-4xl mx-auto">
+      <Card className="flex-1 overflow-hidden flex flex-col bg-white shadow-lg border-therapy-lavender">
+        <div className="overflow-y-auto p-6 flex-1 chat-scrollbar" style={{ minHeight: "500px" }}>
+          <div className="space-y-6">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -45,19 +46,19 @@ const ChatInterface: React.FC = () => {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl p-4 animate-fade-in ${
+                  className={`max-w-[85%] rounded-2xl p-4 shadow-md animate-fade-in ${
                     message.role === "user" 
-                      ? "bg-therapy-lavender text-gray-800 rounded-tr-sm shadow-sm" 
-                      : "bg-therapy-blue text-gray-800 rounded-tl-sm shadow-sm"
+                      ? "bg-therapy-lavender text-gray-800 rounded-tr-sm" 
+                      : "bg-therapy-blue text-gray-800 rounded-tl-sm"
                   }`}
                 >
-                  {message.content}
+                  <p className="text-base leading-relaxed">{message.content}</p>
                 </div>
               </div>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-therapy-blue text-gray-800 p-4 rounded-2xl rounded-tl-sm flex items-center shadow-sm">
+                <div className="bg-therapy-blue text-gray-800 p-4 rounded-2xl rounded-tl-sm flex items-center shadow-md">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   <span>Thinking...</span>
                 </div>
@@ -67,34 +68,36 @@ const ChatInterface: React.FC = () => {
           </div>
         </div>
         
-        <div className="p-4 border-t">
-          <form onSubmit={handleSendMessage} className="flex items-end gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message here..."
-              className="min-h-[80px] resize-none text-base"
-              disabled={isLoading}
-            />
+        <div className="p-6 border-t bg-gray-50">
+          <form onSubmit={handleSendMessage} className="flex items-end gap-4">
+            <div className="flex-1">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message here..."
+                className="min-h-[120px] resize-none text-lg p-4 border-2 border-gray-200 focus:border-therapy-lavender rounded-xl"
+                disabled={isLoading}
+              />
+            </div>
             <Button
               type="submit"
               size="lg"
-              className="shrink-0 h-[80px] w-[80px] bg-primary hover:bg-primary/90"
+              className="shrink-0 h-[120px] w-[120px] bg-primary hover:bg-primary/90 rounded-xl"
               disabled={!input.trim() || isLoading}
             >
               {isLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin" />
               ) : (
-                <Send className="h-6 w-6" />
+                <Send className="h-8 w-8" />
               )}
             </Button>
           </form>
         </div>
       </Card>
       
-      <div className="mt-6">
-        <h2 className="text-lg font-medium mb-3">Conversation Starters</h2>
+      <div className="mt-8">
+        <h2 className="text-xl font-medium mb-4 text-gray-700">Conversation Starters</h2>
         <TherapyTopics />
       </div>
     </div>
