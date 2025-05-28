@@ -1,13 +1,26 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { Message, Conversation } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 
-interface ChatContextProps {
+interface ChatState {
   currentConversation: Conversation | null;
   conversations: Conversation[];
-  messages: Message[];
   isLoading: boolean;
+  error: string | null;
+}
+
+type ChatAction =
+  | { type: 'SET_CONVERSATIONS'; payload: Conversation[] }
+  | { type: 'SET_CURRENT_CONVERSATION'; payload: Conversation }
+  | { type: 'ADD_MESSAGE'; payload: Message }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'START_NEW_CONVERSATION'; payload: Conversation }
+  | { type: 'UPDATE_CONVERSATION'; payload: Conversation };
+
+interface ChatContextProps {
+  state: ChatState;
   sendMessage: (content: string) => Promise<void>;
   startNewConversation: () => void;
   loadConversation: (id: string) => void;
@@ -23,55 +36,108 @@ export const useChat = () => {
   return context;
 };
 
-const INITIAL_GREETING = "Hi there, I'm Mindful AI, your virtual therapy companion. How are you feeling today?";
+const INITIAL_GREETING = "Hello! I'm Mindful AI, your personal therapy companion. I'm here to listen and support you. How are you feeling today?";
 
-// Simple responses for MVP demo - in a real app, this would be connected to an AI API
 const AI_RESPONSES = [
-  "I understand how you feel. Would you like to explore that feeling a bit more?",
-  "That sounds challenging. How long have you been feeling this way?",
-  "Thank you for sharing that with me. What do you think contributed to these feelings?",
-  "I'm here to listen and support you. Is there anything specific you'd like to focus on today?",
-  "Your feelings are valid. Would it help to talk about some coping strategies?",
-  "I appreciate you opening up. How have you been managing these emotions so far?",
-  "It takes courage to express your feelings. Is there anything else on your mind?",
-  "Let's explore this together. What would be helpful for you right now?",
+  "I hear you, and I want you to know that your feelings are completely valid. Can you tell me more about what's been on your mind?",
+  "That sounds really challenging. You're being so brave by sharing this with me. How long have you been carrying these feelings?",
+  "Thank you for trusting me with this. It takes courage to open up. What do you think might help you feel a little lighter right now?",
+  "I'm here with you through this. Sometimes just being heard can make a difference. Is there anything specific you'd like to explore together?",
+  "Your emotional experience matters, and I'm grateful you're sharing it with me. What would feel most supportive for you in this moment?",
+  "I can sense this is important to you. You're taking such a positive step by talking about it. What insights have you had about this situation?",
+  "It sounds like you're going through a lot. Remember, you don't have to carry this alone. What kind of support feels most helpful to you?",
+  "I appreciate your openness. Every feeling you're experiencing is part of your human experience. What would you like to focus on together today?",
 ];
 
-export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+const initialState: ChatState = {
+  currentConversation: null,
+  conversations: [],
+  isLoading: false,
+  error: null,
+};
 
-  // Initialize or load from storage
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  switch (action.type) {
+    case 'SET_CONVERSATIONS':
+      return { ...state, conversations: action.payload };
+    case 'SET_CURRENT_CONVERSATION':
+      return { ...state, currentConversation: action.payload };
+    case 'ADD_MESSAGE':
+      if (!state.currentConversation) return state;
+      const updatedConversation = {
+        ...state.currentConversation,
+        messages: [...state.currentConversation.messages, action.payload],
+        lastUpdated: Date.now(),
+      };
+      return {
+        ...state,
+        currentConversation: updatedConversation,
+        conversations: state.conversations.map(conv =>
+          conv.id === updatedConversation.id ? updatedConversation : conv
+        ),
+      };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'START_NEW_CONVERSATION':
+      return {
+        ...state,
+        currentConversation: action.payload,
+        conversations: [action.payload, ...state.conversations],
+      };
+    case 'UPDATE_CONVERSATION':
+      return {
+        ...state,
+        currentConversation: action.payload,
+        conversations: [action.payload, ...state.conversations.filter(c => c.id !== action.payload.id)],
+      };
+    default:
+      return state;
+  }
+}
+
+export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [state, dispatch] = useReducer(chatReducer, initialState);
+
+  // Initialize conversations from localStorage
   useEffect(() => {
+    console.log("ChatProvider: Initializing...");
     const storedConversations = localStorage.getItem("mindful_conversations");
     
     if (storedConversations) {
-      const parsedConversations = JSON.parse(storedConversations);
-      setConversations(parsedConversations);
-      
-      // Load the last conversation
-      const lastConversation = parsedConversations[0];
-      if (lastConversation) {
-        setCurrentConversation(lastConversation);
-        setMessages(lastConversation.messages);
-      } else {
+      try {
+        const parsedConversations = JSON.parse(storedConversations);
+        console.log("ChatProvider: Loaded conversations from storage:", parsedConversations.length);
+        dispatch({ type: 'SET_CONVERSATIONS', payload: parsedConversations });
+        
+        if (parsedConversations.length > 0) {
+          const lastConversation = parsedConversations[0];
+          dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: lastConversation });
+          console.log("ChatProvider: Set current conversation:", lastConversation.title);
+        } else {
+          startNewConversation();
+        }
+      } catch (error) {
+        console.error("ChatProvider: Error parsing stored conversations:", error);
         startNewConversation();
       }
     } else {
+      console.log("ChatProvider: No stored conversations, starting new one");
       startNewConversation();
     }
   }, []);
 
-  // Save conversations to storage whenever they change
+  // Save to localStorage whenever conversations change
   useEffect(() => {
-    if (conversations.length > 0) {
-      localStorage.setItem("mindful_conversations", JSON.stringify(conversations));
+    if (state.conversations.length > 0) {
+      localStorage.setItem("mindful_conversations", JSON.stringify(state.conversations));
+      console.log("ChatProvider: Saved conversations to storage");
     }
-  }, [conversations]);
+  }, [state.conversations]);
 
   const startNewConversation = () => {
+    console.log("ChatProvider: Starting new conversation");
     const initialMessage: Message = {
       id: uuidv4(),
       content: INITIAL_GREETING,
@@ -86,60 +152,54 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       lastUpdated: Date.now(),
     };
 
-    setCurrentConversation(newConversation);
-    setMessages(newConversation.messages);
-    setConversations(prev => [newConversation, ...prev]);
+    dispatch({ type: 'START_NEW_CONVERSATION', payload: newConversation });
   };
 
   const loadConversation = (id: string) => {
-    const conversation = conversations.find(conv => conv.id === id);
+    console.log("ChatProvider: Loading conversation:", id);
+    const conversation = state.conversations.find(conv => conv.id === id);
     if (conversation) {
-      setCurrentConversation(conversation);
-      setMessages(conversation.messages);
+      dispatch({ type: 'SET_CURRENT_CONVERSATION', payload: conversation });
     }
   };
 
   const sendMessage = async (content: string) => {
-    if (!currentConversation) return;
-
-    // Add user message
-    const userMessage: Message = {
-      id: uuidv4(),
-      content,
-      role: "user",
-      timestamp: Date.now(),
-    };
-
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    
-    // Update current conversation
-    const updatedConversation = {
-      ...currentConversation,
-      messages: updatedMessages,
-      lastUpdated: Date.now(),
-    };
-    
-    // For the title, use the first user message if this is a new conversation
-    if (updatedConversation.title === "New conversation" && userMessage.content.length > 0) {
-      updatedConversation.title = userMessage.content.slice(0, 30) + (userMessage.content.length > 30 ? "..." : "");
+    if (!state.currentConversation || state.isLoading) {
+      console.log("ChatProvider: Cannot send message - no conversation or loading");
+      return;
     }
-    
-    setCurrentConversation(updatedConversation);
-    
-    // Update conversations list
-    setConversations(prev => {
-      const others = prev.filter(c => c.id !== currentConversation.id);
-      return [updatedConversation, ...others];
-    });
 
-    // Simulate AI thinking
-    setIsLoading(true);
-    
-    // Simulate AI response after a delay (1-2 seconds)
-    setTimeout(async () => {
+    console.log("ChatProvider: Sending message:", content);
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+
+    try {
+      // Add user message
+      const userMessage: Message = {
+        id: uuidv4(),
+        content,
+        role: "user",
+        timestamp: Date.now(),
+      };
+
+      dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+
+      // Update conversation title if it's a new conversation
+      let updatedConversation = state.currentConversation;
+      if (updatedConversation.title === "New conversation") {
+        updatedConversation = {
+          ...updatedConversation,
+          title: content.slice(0, 40) + (content.length > 40 ? "..." : ""),
+          lastUpdated: Date.now(),
+        };
+        dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConversation });
+      }
+
+      // Simulate AI thinking time
+      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+
+      // Generate AI response
       const randomResponse = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
-      
       const aiMessage: Message = {
         id: uuidv4(),
         content: randomResponse,
@@ -147,35 +207,21 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timestamp: Date.now(),
       };
 
-      const messagesWithAiResponse = [...updatedMessages, aiMessage];
-      setMessages(messagesWithAiResponse);
-      
-      // Update current conversation with AI response
-      const conversationWithAiResponse = {
-        ...updatedConversation,
-        messages: messagesWithAiResponse,
-        lastUpdated: Date.now(),
-      };
-      
-      setCurrentConversation(conversationWithAiResponse);
-      
-      // Update conversations list
-      setConversations(prev => {
-        const others = prev.filter(c => c.id !== currentConversation.id);
-        return [conversationWithAiResponse, ...others];
-      });
-      
-      setIsLoading(false);
-    }, 1000 + Math.random() * 1000); // Random delay between 1-2 seconds
+      dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
+      console.log("ChatProvider: AI response sent");
+
+    } catch (error) {
+      console.error("ChatProvider: Error sending message:", error);
+      dispatch({ type: 'SET_ERROR', payload: "Failed to send message. Please try again." });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
   };
 
   return (
     <ChatContext.Provider
       value={{
-        currentConversation,
-        conversations,
-        messages,
-        isLoading,
+        state,
         sendMessage,
         startNewConversation,
         loadConversation,
