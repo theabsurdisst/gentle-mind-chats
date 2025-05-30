@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { Message, Conversation } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import { openaiService, OpenAIMessage } from "@/services/openaiService";
 
 interface ChatState {
   currentConversation: Conversation | null;
@@ -195,24 +195,34 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConversation });
       }
 
-      // Simulate AI thinking time
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+      // Prepare conversation history for OpenAI
+      const conversationHistory: OpenAIMessage[] = [
+        ...state.currentConversation.messages.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        })),
+        {
+          role: 'user' as const,
+          content: content
+        }
+      ];
 
-      // Generate AI response
-      const randomResponse = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
+      // Generate AI response using OpenAI
+      const aiResponseContent = await openaiService.generateTherapyResponse(conversationHistory);
+      
       const aiMessage: Message = {
         id: uuidv4(),
-        content: randomResponse,
+        content: aiResponseContent,
         role: "assistant",
         timestamp: Date.now(),
       };
 
       dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
-      console.log("ChatProvider: AI response sent");
+      console.log("ChatProvider: AI response generated successfully");
 
     } catch (error) {
       console.error("ChatProvider: Error sending message:", error);
-      dispatch({ type: 'SET_ERROR', payload: "Failed to send message. Please try again." });
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : "Failed to send message. Please try again." });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
