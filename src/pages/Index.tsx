@@ -1,35 +1,13 @@
-import React, { useState, useEffect } from "react";
+
+import React from "react";
 import { ChatProvider } from "@/context/ChatContext";
 import { MoodProvider } from "@/context/MoodContext";
 import Header from "@/components/Header";
 import ChatInterface from "@/components/ChatInterface";
 import ConversationHistory from "@/components/ConversationHistory";
 import MoodPicker from "@/components/MoodPicker";
-import ApiKeyInput from "@/components/ApiKeyInput";
-import { openaiService } from "@/services/openaiService";
 
 const Index = () => {
-  const [hasApiKey, setHasApiKey] = useState(false);
-
-  useEffect(() => {
-    setHasApiKey(openaiService.hasApiKey());
-  }, []);
-
-  const handleApiKeySet = () => {
-    setHasApiKey(true);
-  };
-
-  if (!hasApiKey) {
-    return (
-      <div className="flex flex-col h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Header />
-        <div className="flex-1 flex items-center justify-center p-6">
-          <ApiKeyInput onApiKeySet={handleApiKeySet} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <MoodProvider>
       <ChatProvider>
