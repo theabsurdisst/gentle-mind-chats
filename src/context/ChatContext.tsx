@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { Message, Conversation } from "@/types";
 import { v4 as uuidv4 } from "uuid";
+import { openaiService, OpenAIMessage } from "@/services/openaiService";
 
 interface ChatState {
   currentConversation: Conversation | null;
@@ -36,18 +36,7 @@ export const useChat = () => {
   return context;
 };
 
-const INITIAL_GREETING = "Hello! I'm Mindful AI, your personal therapy companion. I'm here to listen and support you. How are you feeling today?";
-
-const AI_RESPONSES = [
-  "I hear you, and I want you to know that your feelings are completely valid. Can you tell me more about what's been on your mind?",
-  "That sounds really challenging. You're being so brave by sharing this with me. How long have you been carrying these feelings?",
-  "Thank you for trusting me with this. It takes courage to open up. What do you think might help you feel a little lighter right now?",
-  "I'm here with you through this. Sometimes just being heard can make a difference. Is there anything specific you'd like to explore together?",
-  "Your emotional experience matters, and I'm grateful you're sharing it with me. What would feel most supportive for you in this moment?",
-  "I can sense this is important to you. You're taking such a positive step by talking about it. What insights have you had about this situation?",
-  "It sounds like you're going through a lot. Remember, you don't have to carry this alone. What kind of support feels most helpful to you?",
-  "I appreciate your openness. Every feeling you're experiencing is part of your human experience. What would you like to focus on together today?",
-];
+const INITIAL_GREETING = "Hello! I'm Mindful AI, your personal therapy companion. I'm here to listen and support you with empathy and understanding. How are you feeling today?";
 
 const initialState: ChatState = {
   currentConversation: null,
@@ -169,6 +158,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    if (!openaiService.hasApiKey()) {
+      dispatch({ type: 'SET_ERROR', payload: "OpenAI API key is required for AI responses" });
+      return;
+    }
+
     console.log("ChatProvider: Sending message:", content);
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
@@ -195,24 +189,32 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         dispatch({ type: 'UPDATE_CONVERSATION', payload: updatedConversation });
       }
 
-      // Simulate AI thinking time
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
+      // Prepare messages for OpenAI API
+      const currentMessages = [...state.currentConversation.messages, userMessage];
+      const apiMessages: OpenAIMessage[] = currentMessages
+        .filter(msg => msg.role !== 'assistant' || msg.content !== INITIAL_GREETING)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
       // Generate AI response
-      const randomResponse = AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
+      const aiResponseContent = await openaiService.generateTherapyResponse(apiMessages);
+      
       const aiMessage: Message = {
         id: uuidv4(),
-        content: randomResponse,
+        content: aiResponseContent,
         role: "assistant",
         timestamp: Date.now(),
       };
 
       dispatch({ type: 'ADD_MESSAGE', payload: aiMessage });
-      console.log("ChatProvider: AI response sent");
+      console.log("ChatProvider: AI response generated successfully");
 
     } catch (error) {
       console.error("ChatProvider: Error sending message:", error);
-      dispatch({ type: 'SET_ERROR', payload: "Failed to send message. Please try again." });
+      const errorMessage = error instanceof Error ? error.message : "Failed to send message. Please try again.";
+      dispatch({ type: 'SET_ERROR', payload: errorMessage });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
