@@ -1,5 +1,6 @@
 
-const OPENAI_API_KEY = "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";
+// Replace this with your actual OpenAI API key from https://platform.openai.com/account/api-keys
+const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY_HERE";
 
 export interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -12,9 +13,19 @@ export class OpenAIService {
 
   constructor() {
     this.apiKey = OPENAI_API_KEY;
+    
+    // Check if API key is set
+    if (this.apiKey === "YOUR_OPENAI_API_KEY_HERE" || !this.apiKey) {
+      console.warn("OpenAI API key not configured. Please set a valid API key.");
+    }
   }
 
   async generateTherapyResponse(messages: OpenAIMessage[]): Promise<string> {
+    // Check if API key is configured
+    if (this.apiKey === "YOUR_OPENAI_API_KEY_HERE" || !this.apiKey) {
+      throw new Error('OpenAI API key not configured. Please check your API key and ensure you have credits in your OpenAI account.');
+    }
+
     const systemPrompt: OpenAIMessage = {
       role: 'system',
       content: `You are Mindful AI, a compassionate and professional AI therapy companion. Your role is to:
@@ -50,6 +61,17 @@ IMPORTANT: If someone expresses thoughts of self-harm or suicide, acknowledge th
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API Error Response:', errorData);
+        
+        if (response.status === 401) {
+          throw new Error('Invalid OpenAI API key. Please check your API key and ensure it\'s valid.');
+        } else if (response.status === 429) {
+          throw new Error('OpenAI API rate limit exceeded. Please try again in a moment.');
+        } else if (response.status === 402) {
+          throw new Error('OpenAI API quota exceeded. Please check your billing and usage limits.');
+        }
+        
         throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
       }
 
@@ -57,6 +79,11 @@ IMPORTANT: If someone expresses thoughts of self-harm or suicide, acknowledge th
       return data.choices[0]?.message?.content || "I'm here to listen. Can you tell me more about what you're experiencing?";
     } catch (error) {
       console.error('OpenAI API Error:', error);
+      
+      if (error instanceof Error) {
+        throw error;
+      }
+      
       throw new Error('I apologize, but I encountered an issue generating a response. Please try again in a moment.');
     }
   }
